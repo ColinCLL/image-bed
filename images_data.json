@@ -1,49 +1,63 @@
 {
-  "last_updated": "2025-07-30T17:53:09.228572",
-  "total_images": 3,
-  "total_size": 905621,
+  "last_updated": "2025-07-30T09:56:49.675215",
+  "total_images": 4,
+  "total_size": 1033794,
   "images": [
+    {
+      "name": "微信图片_20250331172746.jpg",
+      "path": "微信图片_20250331172746.jpg",
+      "thumbnail": "thumbnails/thumb_微信图片_20250331172746.jpg",
+      "size": "380.6KB",
+      "size_bytes": 389695,
+      "modified_time": "2025-07-30T09:56:48.082465",
+      "modified_date": "2025-07-30 09:56",
+      "hash": "21192237de6b4acf4f63be7857ef888c",
+      "mime_type": "image/jpeg",
+      "width": 1440,
+      "height": 810,
+      "aspect_ratio": 1.78
+    },
+    {
+      "name": "wechat_2025-07-30_175627_470.png",
+      "path": "wechat_2025-07-30_175627_470.png",
+      "thumbnail": "thumbnails/thumb_wechat_2025-07-30_175627_470.jpg",
+      "size": "125.2KB",
+      "size_bytes": 128173,
+      "modified_time": "2025-07-30T09:56:48.080465",
+      "modified_date": "2025-07-30 09:56",
+      "hash": "7e1d193e1b3c49b0bc69c0edc13c66f5",
+      "mime_type": "image/png",
+      "width": 261,
+      "height": 311,
+      "aspect_ratio": 0.84
+    },
     {
       "name": "mytest1.jpg",
       "path": "mytest1.jpg",
-      "thumbnail": null,
+      "thumbnail": "thumbnails/thumb_mytest1.jpg",
       "size": "244.2KB",
       "size_bytes": 250054,
-      "modified_time": "2025-07-30T17:41:16.975560",
-      "modified_date": "2025-07-30 17:41",
+      "modified_time": "2025-07-30T09:56:48.079465",
+      "modified_date": "2025-07-30 09:56",
       "hash": "ccb343aeb27ffadd8710111992c0834c",
       "mime_type": "image/jpeg",
-      "width": null,
-      "height": null,
-      "aspect_ratio": null
+      "width": 1279,
+      "height": 1706,
+      "aspect_ratio": 0.75
     },
     {
       "name": "myTest2.jpg",
       "path": "myTest2.jpg",
-      "thumbnail": null,
+      "thumbnail": "thumbnails/thumb_myTest2.jpg",
       "size": "259.6KB",
       "size_bytes": 265872,
-      "modified_time": "2025-07-30T11:00:06.985848",
-      "modified_date": "2025-07-30 11:00",
+      "modified_time": "2025-07-30T09:56:48.078465",
+      "modified_date": "2025-07-30 09:56",
       "hash": "5e156d83a53ae9b713cc5705abaf619e",
       "mime_type": "image/jpeg",
-      "width": null,
-      "height": null,
-      "aspect_ratio": null
-    },
-    {
-      "name": "微信图片_20250331172746.jpg",
-      "path": "微信图片_20250331172746.jpg",
-      "thumbnail": null,
-      "size": "380.6KB",
-      "size_bytes": 389695,
-      "modified_time": "2025-07-30T09:50:23.350396",
-      "modified_date": "2025-07-30 09:50",
-      "hash": "21192237de6b4acf4f63be7857ef888c",
-      "mime_type": "image/jpeg",
-      "width": null,
-      "height": null,
-      "aspect_ratio": null
+      "width": 1279,
+      "height": 1706,
+      "aspect_ratio": 0.75
     }
   ]
 }
