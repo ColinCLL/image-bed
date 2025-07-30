@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>摄影作品展示</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1><i class="fas fa-camera"></i> 摄影作品展示</h1>
+            <p>专业摄影服务 - 为模特提供高质量返图</p>
+        </div>
+    </header>
+
+    <main>
+        <div class="controls">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" placeholder="搜索图片...">
+            </div>
+            <div class="view-controls">
+                <button id="gridView" class="active"><i class="fas fa-th"></i> 网格视图</button>
+                <button id="listView"><i class="fas fa-list"></i> 列表视图</button>
+            </div>
+        </div>
+
+        <div class="gallery-container">
+            <div id="imageGallery" class="image-gallery">
+                <!-- 图片将通过JavaScript动态加载 -->
+            </div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>正在加载图片...</p>
+        </div>
+    </main>
+
+    <!-- 图片预览模态框 -->
+    <div id="imageModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <img id="modalImage" src="" alt="">
+            <div class="modal-info">
+                <h3 id="modalTitle"></h3>
+                <p id="modalDate"></p>
+            </div>
+            <div class="modal-nav">
+                <button id="prevBtn"><i class="fas fa-chevron-left"></i></button>
+                <button id="nextBtn"><i class="fas fa-chevron-right"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2024 专业摄影服务. 保留所有权利.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html> 

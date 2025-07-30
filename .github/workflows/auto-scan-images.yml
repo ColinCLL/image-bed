@@ -1,0 +1,76 @@
+name: 自动扫描图片并更新网站
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '*.jpg'
+      - '*.jpeg'
+      - '*.png'
+      - '*.gif'
+      - '*.webp'
+      - '*.bmp'
+      - '*.tiff'
+      - '*.tif'
+  workflow_dispatch:
+
+jobs:
+  scan-images:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: 安装依赖
+      run: |
+        pip install -r requirements.txt
+        
+    - name: 扫描图片文件
+      run: |
+        echo "开始扫描图片文件..."
+        python scan_images.py
+        
+    - name: 检查是否有图片数据更新
+      id: check-changes
+      run: |
+        if git diff --quiet images_data.json; then
+          echo "没有新的图片文件"
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+        else
+          echo "发现新的图片文件"
+          echo "has_changes=true" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: 提交更新的图片数据
+      if: steps.check-changes.outputs.has_changes == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add images_data.json
+        git commit -m "自动更新图片数据 - $(date '+%Y-%m-%d %H:%M:%S')"
+        git push
+        
+    - name: 显示扫描结果
+      run: |
+        if [ -f images_data.json ]; then
+          echo "图片扫描完成！"
+          echo "找到的图片："
+          cat images_data.json | python -m json.tool
+        else
+          echo "未找到图片数据文件"
+        fi
+        
+    - name: 发送通知
+      if: steps.check-changes.outputs.has_changes == 'true'
+      run: |
+        echo "网站已自动更新！"
+        echo "模特可以通过以下链接查看最新作品："
+        echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}" 
