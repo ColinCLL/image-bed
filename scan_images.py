@@ -11,12 +11,18 @@ import hashlib
 from datetime import datetime
 from pathlib import Path
 import mimetypes
+from PIL import Image
+import io
 
 class ImageScanner:
     def __init__(self, project_dir="."):
         self.project_dir = Path(project_dir)
         self.image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif'}
         self.images_data_file = self.project_dir / "images_data.json"
+        self.thumbnails_dir = self.project_dir / "thumbnails"
+        
+        # 创建缩略图目录
+        self.thumbnails_dir.mkdir(exist_ok=True)
         
     def scan_images(self):
         """扫描项目目录中的所有图片文件"""
@@ -30,6 +36,10 @@ class ImageScanner:
                     
                 # 跳过GitHub Actions相关文件
                 if '.github' in file_path.parts:
+                    continue
+                    
+                # 跳过缩略图目录
+                if self.thumbnails_dir in file_path.parents:
                     continue
                     
                 image_info = self.get_image_info(file_path)
@@ -58,18 +68,66 @@ class ImageScanner:
             # 获取MIME类型
             mime_type, _ = mimetypes.guess_type(str(file_path))
             
+            # 获取图片尺寸信息
+            dimensions = self.get_image_dimensions(file_path)
+            
+            # 生成缩略图
+            thumbnail_path = self.generate_thumbnail(file_path)
+            
             return {
                 'name': file_path.name,
                 'path': str(file_path.relative_to(self.project_dir)),
+                'thumbnail': str(thumbnail_path.relative_to(self.project_dir)) if thumbnail_path else None,
                 'size': size_str,
                 'size_bytes': size_bytes,
                 'modified_time': modified_time.isoformat(),
                 'modified_date': modified_time.strftime('%Y-%m-%d %H:%M'),
                 'hash': file_hash,
-                'mime_type': mime_type or 'image/jpeg'
+                'mime_type': mime_type or 'image/jpeg',
+                'width': dimensions.get('width'),
+                'height': dimensions.get('height'),
+                'aspect_ratio': dimensions.get('aspect_ratio')
             }
         except Exception as e:
             print(f"处理文件 {file_path} 时出错: {e}")
+            return None
+    
+    def get_image_dimensions(self, file_path):
+        """获取图片尺寸信息"""
+        try:
+            with Image.open(file_path) as img:
+                width, height = img.size
+                aspect_ratio = round(width / height, 2) if height > 0 else 0
+                return {
+                    'width': width,
+                    'height': height,
+                    'aspect_ratio': aspect_ratio
+                }
+        except Exception as e:
+            print(f"获取图片尺寸时出错 {file_path}: {e}")
+            return {'width': None, 'height': None, 'aspect_ratio': None}
+    
+    def generate_thumbnail(self, file_path, max_size=(300, 300)):
+        """生成缩略图"""
+        try:
+            with Image.open(file_path) as img:
+                # 转换为RGB模式（如果是RGBA）
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    img = img.convert('RGB')
+                
+                # 计算缩略图尺寸
+                img.thumbnail(max_size, Image.Resampling.LANCZOS)
+                
+                # 生成缩略图文件名
+                thumbnail_name = f"thumb_{file_path.stem}.jpg"
+                thumbnail_path = self.thumbnails_dir / thumbnail_name
+                
+                # 保存缩略图
+                img.save(thumbnail_path, 'JPEG', quality=85, optimize=True)
+                
+                return thumbnail_path
+        except Exception as e:
+            print(f"生成缩略图时出错 {file_path}: {e}")
             return None
     
     def calculate_file_hash(self, file_path):

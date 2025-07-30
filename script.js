@@ -86,11 +86,12 @@ function createImageItem(image, index) {
     const formattedDate = formatDate(image.date);
     
     item.innerHTML = `
-        <img src="${image.path}" alt="${image.name}" loading="lazy">
+        <img src="${image.thumbnail || image.path}" alt="${image.name}" loading="lazy" data-full="${image.path}">
         <div class="image-info">
             <h3>${image.name}</h3>
             <p>拍摄时间: ${formattedDate}</p>
             <p>文件大小: ${image.size}</p>
+            ${image.width && image.height ? `<p>尺寸: ${image.width}×${image.height}</p>` : ''}
             <div class="image-actions">
                 <button class="download-thumb-btn" title="下载图片">
                     <i class="fas fa-download"></i>
