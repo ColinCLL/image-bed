@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-图片扫描器 - 专为CI/CD设计
-自动扫描项目目录中的图片文件并生成JSON数据
+高级图片扫描器 - 包含缩略图生成功能
+专为GitHub Actions设计，自动生成缩略图以提升网站性能
 """
 
 import os
@@ -12,7 +12,15 @@ from datetime import datetime
 from pathlib import Path
 import mimetypes
 
-class ImageScanner:
+# 尝试导入Pillow，如果失败则使用简化版本
+try:
+    from PIL import Image
+    PILLOW_AVAILABLE = True
+except ImportError:
+    PILLOW_AVAILABLE = False
+    print("警告: Pillow未安装，将使用简化版本")
+
+class AdvancedImageScanner:
     def __init__(self, project_dir="."):
         self.project_dir = Path(project_dir)
         self.image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif'}
@@ -91,46 +99,76 @@ class ImageScanner:
             return None
     
     def get_image_dimensions(self, file_path):
-        """获取图片尺寸信息（简化版本）"""
-        try:
-            # 读取文件头来获取基本信息
-            with open(file_path, 'rb') as f:
-                # 对于JPEG文件
-                if file_path.suffix.lower() in ['.jpg', '.jpeg']:
-                    f.seek(2)
-                    if f.read(2) == b'\xff\xd8':  # JPEG文件头
+        """获取图片尺寸信息"""
+        if PILLOW_AVAILABLE:
+            try:
+                with Image.open(file_path) as img:
+                    width, height = img.size
+                    aspect_ratio = round(width / height, 2) if height > 0 else 0
+                    return {
+                        'width': width,
+                        'height': height,
+                        'aspect_ratio': aspect_ratio
+                    }
+            except Exception as e:
+                print(f"获取图片尺寸时出错 {file_path}: {e}")
+                return {'width': None, 'height': None, 'aspect_ratio': None}
+        else:
+            # 简化版本 - 尝试从JPEG文件头读取尺寸
+            try:
+                with open(file_path, 'rb') as f:
+                    if file_path.suffix.lower() in ['.jpg', '.jpeg']:
                         f.seek(2)
-                        while True:
-                            marker = f.read(2)
-                            if not marker or marker[0] != 0xff:
-                                break
-                            if marker[1] in [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]:
-                                f.read(1)  # 跳过长度字节
-                                height = int.from_bytes(f.read(2), 'big')
-                                width = int.from_bytes(f.read(2), 'big')
-                                aspect_ratio = round(width / height, 2) if height > 0 else 0
-                                return {
-                                    'width': width,
-                                    'height': height,
-                                    'aspect_ratio': aspect_ratio
-                                }
-                            else:
-                                length = int.from_bytes(f.read(2), 'big')
-                                f.read(length - 2)
-                        f.seek(0)
-            
-            # 如果无法获取尺寸，返回None
-            return {'width': None, 'height': None, 'aspect_ratio': None}
-        except Exception as e:
-            print(f"获取图片尺寸时出错 {file_path}: {e}")
-            return {'width': None, 'height': None, 'aspect_ratio': None}
+                        if f.read(2) == b'\xff\xd8':  # JPEG文件头
+                            f.seek(2)
+                            while True:
+                                marker = f.read(2)
+                                if not marker or marker[0] != 0xff:
+                                    break
+                                if marker[1] in [0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf]:
+                                    f.read(1)  # 跳过长度字节
+                                    height = int.from_bytes(f.read(2), 'big')
+                                    width = int.from_bytes(f.read(2), 'big')
+                                    aspect_ratio = round(width / height, 2) if height > 0 else 0
+                                    return {
+                                        'width': width,
+                                        'height': height,
+                                        'aspect_ratio': aspect_ratio
+                                    }
+                                else:
+                                    length = int.from_bytes(f.read(2), 'big')
+                                    f.read(length - 2)
+                            f.seek(0)
+                
+                return {'width': None, 'height': None, 'aspect_ratio': None}
+            except Exception as e:
+                print(f"获取图片尺寸时出错 {file_path}: {e}")
+                return {'width': None, 'height': None, 'aspect_ratio': None}
     
     def generate_thumbnail(self, file_path, max_size=(300, 300)):
-        """生成缩略图（简化版本 - 使用原图作为缩略图）"""
-        try:
-            # 由于没有Pillow，我们暂时使用原图路径
-            # 在实际部署中，GitHub Actions会安装Pillow并生成真正的缩略图
+        """生成缩略图"""
+        if not PILLOW_AVAILABLE:
+            print(f"跳过缩略图生成 {file_path.name} (Pillow未安装)")
             return None
+            
+        try:
+            with Image.open(file_path) as img:
+                # 转换为RGB模式（如果是RGBA）
+                if img.mode in ('RGBA', 'LA', 'P'):
+                    img = img.convert('RGB')
+                
+                # 计算缩略图尺寸
+                img.thumbnail(max_size, Image.Resampling.LANCZOS)
+                
+                # 生成缩略图文件名
+                thumbnail_name = f"thumb_{file_path.stem}.jpg"
+                thumbnail_path = self.thumbnails_dir / thumbnail_name
+                
+                # 保存缩略图
+                img.save(thumbnail_path, 'JPEG', quality=85, optimize=True)
+                
+                print(f"生成缩略图: {thumbnail_path}")
+                return thumbnail_path
         except Exception as e:
             print(f"生成缩略图时出错 {file_path}: {e}")
             return None
@@ -189,6 +227,10 @@ class ImageScanner:
             print(f"找到 {len(images)} 张图片:")
             for img in images:
                 print(f"  - {img['name']} ({img['size']})")
+                if img['thumbnail']:
+                    print(f"    缩略图: {img['thumbnail']}")
+                if img['width'] and img['height']:
+                    print(f"    尺寸: {img['width']}×{img['height']}")
             
             self.save_images_data(images)
             return images
@@ -198,16 +240,23 @@ class ImageScanner:
 
 def main():
     """主函数"""
-    scanner = ImageScanner()
+    scanner = AdvancedImageScanner()
     
-    print("=== 图片扫描器 ===")
+    print("=== 高级图片扫描器 ===")
     print("正在扫描项目目录中的图片文件...")
+    
+    if PILLOW_AVAILABLE:
+        print("✓ Pillow已安装，将生成缩略图")
+    else:
+        print("⚠ Pillow未安装，使用简化版本")
     
     images = scanner.update_images_data()
     
     if images:
         print(f"\n扫描完成！共找到 {len(images)} 张图片")
         print("图片数据已保存到 images_data.json")
+        if PILLOW_AVAILABLE:
+            print("缩略图已生成到 thumbnails/ 目录")
         print("\n网站将自动更新显示最新图片。")
     else:
         print("\n未找到任何图片文件。")

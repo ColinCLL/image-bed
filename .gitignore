@@ -1,5 +1,7 @@
-# 缩略图目录（自动生成）
-thumbnails/
+# Python缓存文件
+__pycache__/
+*.py[cod]
+*$py.class
 
 # Python缓存文件
 __pycache__/
