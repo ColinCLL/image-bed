@@ -1,15 +1,26 @@
 {
-  "last_updated": "2025-07-30T09:54:52.442272",
-  "total_images": 1,
+  "last_updated": "2025-07-30T02:57:51.928676",
+  "total_images": 2,
+  "total_size": 655567,
   "images": [
     {
       "name": "微信图片_20250331172746.jpg",
       "path": "微信图片_20250331172746.jpg",
       "size": "380.6KB",
       "size_bytes": 389695,
-      "modified_time": "2025-07-30T09:50:23.350396",
-      "modified_date": "2025-07-30 09:50",
+      "modified_time": "2025-07-30T02:57:48.657686",
+      "modified_date": "2025-07-30 02:57",
       "hash": "21192237de6b4acf4f63be7857ef888c",
+      "mime_type": "image/jpeg"
+    },
+    {
+      "name": "myTest2.jpg",
+      "path": "myTest2.jpg",
+      "size": "259.6KB",
+      "size_bytes": 265872,
+      "modified_time": "2025-07-30T02:57:48.655686",
+      "modified_date": "2025-07-30 02:57",
+      "hash": "5e156d83a53ae9b713cc5705abaf619e",
       "mime_type": "image/jpeg"
     }
   ]
