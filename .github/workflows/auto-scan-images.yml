@@ -36,7 +36,7 @@ jobs:
     - name: 扫描图片文件
       run: |
         echo "开始扫描图片文件..."
-        python scan_images.py
+        python scan_images_advanced.py
         
     - name: 检查是否有图片数据更新
       id: check-changes
