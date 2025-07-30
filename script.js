@@ -91,11 +91,22 @@ function createImageItem(image, index) {
             <h3>${image.name}</h3>
             <p>拍摄时间: ${formattedDate}</p>
             <p>文件大小: ${image.size}</p>
+            <div class="image-actions">
+                <button class="download-thumb-btn" title="下载图片">
+                    <i class="fas fa-download"></i>
+                </button>
+            </div>
         </div>
     `;
     
     // 添加点击事件
-    item.addEventListener('click', () => {
+    item.addEventListener('click', (e) => {
+        // 如果点击的是下载按钮，不打开模态框
+        if (e.target.closest('.download-thumb-btn')) {
+            e.stopPropagation();
+            downloadImage(image);
+            return;
+        }
         openModal(index);
     });
     
@@ -135,6 +146,7 @@ function setupEventListeners() {
     const closeBtn = modal.querySelector('.close');
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
     
     closeBtn.addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {
@@ -143,6 +155,7 @@ function setupEventListeners() {
     
     prevBtn.addEventListener('click', showPreviousImage);
     nextBtn.addEventListener('click', showNextImage);
+    downloadBtn.addEventListener('click', downloadCurrentImage);
     
     // 键盘导航
     document.addEventListener('keydown', handleKeyboardNavigation);
@@ -226,6 +239,60 @@ function updateModalNavigation() {
     nextBtn.style.display = currentImageIndex < allImages.length - 1 ? 'flex' : 'none';
 }
 
+// 下载图片（通用函数）
+function downloadImage(image) {
+    if (!image) return;
+    
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.href = image.path;
+    link.download = image.name;
+    link.target = '_blank';
+    
+    // 触发下载
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // 显示下载成功提示
+    showDownloadSuccess(image.name);
+}
+
+// 下载当前图片
+function downloadCurrentImage() {
+    const image = allImages[currentImageIndex];
+    downloadImage(image);
+}
+
+// 显示下载成功提示
+function showDownloadSuccess(filename) {
+    // 移除已存在的提示
+    const existingToast = document.querySelector('.download-success');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // 创建新的提示
+    const toast = document.createElement('div');
+    toast.className = 'download-success';
+    toast.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        <span>${filename} 下载成功！</span>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // 3秒后自动隐藏
+    setTimeout(() => {
+        toast.classList.add('hide');
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}
+
 // 键盘导航
 function handleKeyboardNavigation(event) {
     const modal = document.getElementById('imageModal');
@@ -240,6 +307,10 @@ function handleKeyboardNavigation(event) {
                 break;
             case 'ArrowRight':
                 showNextImage();
+                break;
+            case 'd':
+            case 'D':
+                downloadCurrentImage();
                 break;
         }
     }
