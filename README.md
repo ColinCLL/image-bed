@@ -12,21 +12,32 @@
 - ⚡ **懒加载** - 提升页面加载速度
 - 🎨 **现代界面** - 美观的渐变背景和毛玻璃效果
 
-## 快速开始
+## 🚀 快速开始
 
-### 1. 上传图片
+### 方法一：Fork项目（推荐）
+
+1. **Fork项目**：点击右上角的Fork按钮
+2. **启用GitHub Pages**：在仓库设置中启用Pages
+3. **上传图片**：直接上传图片到仓库
+4. **自动部署**：系统会自动处理并部署网站
+
+详细教程请查看：[Fork教程.md](Fork教程.md)
+
+### 方法二：本地部署
+
+#### 1. 上传图片
 将您的摄影作品（支持 jpg, jpeg, png, gif, webp, bmp, tiff, tif 格式）上传到项目根目录。
 
-### 2. 扫描图片
+#### 2. 扫描图片
 运行Python脚本来自动扫描和更新图片列表：
 
 ```bash
-python image_scanner.py
+python scan_images.py
 ```
 
 这将创建一个 `images_data.json` 文件，包含所有图片的详细信息。
 
-### 3. 部署到GitHub Pages
+#### 3. 部署到GitHub Pages
 
 1. 将项目推送到GitHub仓库
 2. 在仓库设置中启用GitHub Pages
@@ -40,8 +51,11 @@ image-bed/
 ├── index.html          # 主页面
 ├── styles.css          # 样式文件
 ├── script.js           # JavaScript功能
-├── image_scanner.py    # 图片扫描脚本
+├── scan_images.py      # 图片扫描脚本（支持缩略图）
 ├── images_data.json    # 图片数据（自动生成）
+├── thumbnails/         # 缩略图目录（自动生成）
+├── .github/workflows/  # GitHub Actions配置
+├── requirements.txt    # Python依赖包
 ├── README.md           # 说明文档
 └── 图片文件...         # 您的摄影作品
 ```
@@ -51,9 +65,20 @@ image-bed/
 ### 日常使用流程
 
 1. **拍摄完成后**：将照片文件上传到项目目录
-2. **运行扫描脚本**：`python image_scanner.py`
+2. **运行扫描脚本**：`python scan_images.py`
 3. **提交到GitHub**：推送更新到仓库
 4. **分享链接**：将GitHub Pages链接发送给模特
+
+### 大批量图片处理
+
+如果您需要处理大量图片（100-200张，每张10几MB），请查看：
+- [大批量图片处理指南.md](大批量图片处理指南.md) - 详细的大批量处理方案
+- [compress_images.py](compress_images.py) - 图片压缩工具
+
+**建议**：
+- 分批上传（每次50-80张）
+- 使用压缩工具优化图片大小
+- 避免单次上传过多大文件
 
 ### 高级功能
 
@@ -61,6 +86,7 @@ image-bed/
 - **视图切换**：点击"网格视图"或"列表视图"按钮切换显示方式
 - **图片预览**：点击任意图片查看大图，使用左右箭头键或点击按钮浏览
 - **键盘导航**：在预览模式下使用方向键浏览图片，ESC键关闭预览
+- **下载功能**：支持直接下载原图
 
 ## 自定义设置
 
@@ -83,7 +109,7 @@ body {
 ```
 
 ### 添加更多图片格式
-编辑 `image_scanner.py` 中的 `image_extensions` 变量：
+编辑 `scan_images.py` 中的 `image_extensions` 变量：
 
 ```python
 self.image_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.tif', '.heic'}
