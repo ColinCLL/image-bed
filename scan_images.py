@@ -218,6 +218,35 @@ class AdvancedImageScanner:
         except Exception as e:
             print(f"保存图片数据时出错: {e}")
     
+    def cleanup_orphaned_thumbnails(self, current_images):
+        """清理无用的缩略图文件"""
+        if not self.thumbnails_dir.exists():
+            return
+        
+        # 获取当前图片对应的缩略图文件名
+        current_thumbnail_names = set()
+        for img in current_images:
+            if img['thumbnail']:
+                thumbnail_name = Path(img['thumbnail']).name
+                current_thumbnail_names.add(thumbnail_name)
+        
+        # 检查缩略图目录中的所有文件
+        orphaned_count = 0
+        for thumbnail_file in self.thumbnails_dir.iterdir():
+            if thumbnail_file.is_file() and thumbnail_file.suffix.lower() in {'.jpg', '.jpeg', '.png'}:
+                if thumbnail_file.name not in current_thumbnail_names:
+                    try:
+                        thumbnail_file.unlink()
+                        print(f"🗑️  删除无用缩略图: {thumbnail_file.name}")
+                        orphaned_count += 1
+                    except Exception as e:
+                        print(f"❌ 删除缩略图失败 {thumbnail_file.name}: {e}")
+        
+        if orphaned_count > 0:
+            print(f"清理完成！删除了 {orphaned_count} 个无用缩略图")
+        else:
+            print("✅ 缩略图目录已清理，无需删除")
+    
     def update_images_data(self):
         """更新图片数据"""
         print("开始扫描图片文件...")
@@ -232,10 +261,15 @@ class AdvancedImageScanner:
                 if img['width'] and img['height']:
                     print(f"    尺寸: {img['width']}×{img['height']}")
             
+            # 清理无用的缩略图
+            self.cleanup_orphaned_thumbnails(images)
+            
             self.save_images_data(images)
             return images
         else:
             print("未找到任何图片文件")
+            # 清理所有缩略图（如果没有图片）
+            self.cleanup_orphaned_thumbnails([])
             return []
 
 def main():

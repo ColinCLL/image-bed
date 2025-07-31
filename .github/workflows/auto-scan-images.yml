@@ -41,23 +41,36 @@ jobs:
     - name: 检查是否有图片数据更新
       id: check-changes
       run: |
-        if git diff --quiet images_data.json; then
-          echo "没有新的图片文件"
-          echo "has_changes=false" >> $GITHUB_OUTPUT
-        else
-          echo "发现新的图片文件"
+        # 检查是否有图片文件的变化（包括删除）
+        if git diff --name-only HEAD~1 | grep -E '\.(jpg|jpeg|png|gif|webp|bmp|tiff|tif)$' > /dev/null; then
+          echo "发现图片文件变化（包括删除）"
           echo "has_changes=true" >> $GITHUB_OUTPUT
+        else
+          echo "没有图片文件变化"
+          echo "has_changes=false" >> $GITHUB_OUTPUT
+        fi
+        
+    - name: 检查是否由Action触发
+      id: check-action-trigger
+      run: |
+        # 检查最近的提交是否由Action触发
+        if git log --oneline -1 | grep -q "自动更新图片数据"; then
+          echo "检测到Action触发的提交，跳过以避免循环"
+          echo "is_action_commit=true" >> $GITHUB_OUTPUT
+        else
+          echo "检测到用户触发的提交"
+          echo "is_action_commit=false" >> $GITHUB_OUTPUT
         fi
         
     - name: 提交更新的图片数据
-      if: steps.check-changes.outputs.has_changes == 'true'
+      if: steps.check-changes.outputs.has_changes == 'true' && steps.check-action-trigger.outputs.is_action_commit == 'false'
       run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
         git add images_data.json
         git add thumbnails/ || true
-        git commit -m "自动更新图片数据和缩略图 - $(date '+%Y-%m-%d %H:%M:%S')"
-        git push
+        git commit -m "🤖 自动更新图片数据和缩略图 - $(date '+%Y-%m-%d %H:%M:%S')"
+        git push origin HEAD:main
         
     - name: 显示扫描结果
       run: |
