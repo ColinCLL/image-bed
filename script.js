@@ -44,9 +44,12 @@ async function scanImages() {
             return data.images.map(img => ({
                 name: img.name,
                 path: img.path,
+                thumbnail: img.thumbnail,
                 date: new Date(img.modified_time),
                 size: img.size,
-                modified_date: img.modified_date
+                modified_date: img.modified_date,
+                width: img.width,
+                height: img.height
             }));
         }
     } catch (error) {
@@ -85,8 +88,22 @@ function createImageItem(image, index) {
     
     const formattedDate = formatDate(image.date);
     
+    // 修复缩略图路径
+    let thumbnailSrc = image.path; // 默认使用原图
+    if (image.thumbnail) {
+        // 简化路径处理
+        thumbnailSrc = image.thumbnail;
+        
+        // 调试信息
+        console.log('缩略图路径:', {
+            original: image.thumbnail,
+            processed: thumbnailSrc,
+            imageName: image.name
+        });
+    }
+    
     item.innerHTML = `
-        <img src="${image.thumbnail || image.path}" alt="${image.name}" loading="lazy" data-full="${image.path}">
+        <img src="${thumbnailSrc}" alt="${image.name}" loading="lazy" data-full="${image.path}">
         <div class="image-info">
             <h3>${image.name}</h3>
             <p>拍摄时间: ${formattedDate}</p>
