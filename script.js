@@ -89,7 +89,7 @@ function createImageItem(image, index) {
     const formattedDate = formatDate(image.date);
     
     // 修复缩略图路径
-    let thumbnailSrc = image.path; // 默认使用原图
+    let thumbnailSrc = image.path || ''; // 默认使用原图，确保不为undefined
     if (image.thumbnail) {
         // 确保缩略图路径正确处理
         thumbnailSrc = image.thumbnail.startsWith('./') ? image.thumbnail : './' + image.thumbnail;
@@ -100,14 +100,22 @@ function createImageItem(image, index) {
             processed: thumbnailSrc,
             imageName: image.name
         });
+    } else if (!thumbnailSrc && image.path) {
+        // 如果没有缩略图但有原图路径，则使用原图路径
+        thumbnailSrc = image.path.startsWith('./') ? image.path : './' + image.path;
+    }
+    
+    // 确保最终thumbnailSrc不为空
+    if (!thumbnailSrc) {
+        thumbnailSrc = 'data:image/svg+xml;charset=utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22200%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23ddd%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20fill%3D%22%23999%22%20font-size%3D%2220%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22middle%22%3E图片加载失败%3C%2Ftext%3E%3C%2Fsvg%3E';
     }
     
     item.innerHTML = `
-        <img src="${thumbnailSrc}" alt="${image.name}" loading="lazy" data-full="${image.path}">
+        <img src="${thumbnailSrc}" alt="${image.name}" loading="lazy" data-full="${image.path || ''}" data-src="${thumbnailSrc}" onerror="this.onerror=null; this.src='data:image/svg+xml;charset=utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22200%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23ddd%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20fill%3D%22%23999%22%20font-size%3D%2220%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22middle%22%3E图片加载失败%3C%2Ftext%3E%3C%2Fsvg%3E';">
         <div class="image-info">
-            <h3>${image.name}</h3>
-            <p>拍摄时间: ${formattedDate}</p>
-            <p>文件大小: ${image.size}</p>
+            <h3>${image.name || '未知图片'}</h3>
+            <p>拍摄时间: ${formattedDate || '未知时间'}</p>
+            <p>文件大小: ${image.size || '未知'}</p>
             ${image.width && image.height ? `<p>尺寸: ${image.width}×${image.height}</p>` : ''}
             <div class="image-actions">
                 <button class="download-thumb-btn" title="下载图片">
@@ -116,6 +124,18 @@ function createImageItem(image, index) {
             </div>
         </div>
     `;
+    
+    // 添加图片加载错误处理
+    const imgElement = item.querySelector('img');
+    imgElement.addEventListener('error', function() {
+        console.log('图片加载失败，使用默认图片:', image.name);
+        // 当图片加载失败时，使用默认图片
+        this.src = './wechat_2025-07-30_175627_470.png';
+        // 如果默认图片也加载失败，则显示占位符
+        this.onerror = function() {
+            this.src = 'data:image/svg+xml;charset=utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22300%22%20height%3D%22200%22%3E%3Crect%20width%3D%22100%25%22%20height%3D%22100%25%22%20fill%3D%22%23ddd%22%2F%3E%3Ctext%20x%3D%2250%25%22%20y%3D%2250%25%22%20fill%3D%22%23999%22%20font-size%3D%2220%22%20text-anchor%3D%22middle%22%20dominant-baseline%3D%22middle%22%3E图片加载失败%3C%2Ftext%3E%3C%2Fsvg%3E';
+        };
+    });
     
     // 添加点击事件
     item.addEventListener('click', (e) => {
@@ -385,21 +405,40 @@ function debounce(func, wait) {
 function setupLazyLoading() {
     const images = document.querySelectorAll('img[loading="lazy"]');
     
+    // 如果没有需要懒加载的图片，直接返回
+    if (images.length === 0) {
+        return;
+    }
+    
     const imageObserver = new IntersectionObserver((entries, observer) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 const img = entry.target;
-                img.src = img.dataset.src;
+                // 检查data-src是否存在且不为空
+                if (img.dataset.src && img.dataset.src !== 'undefined') {
+                    img.src = img.dataset.src;
+                }
+                // 移除lazy类名
                 img.classList.remove('lazy');
+                // 停止观察这个元素
                 observer.unobserve(img);
             }
         });
+    }, {
+        // 配置观察选项
+        rootMargin: '50px' // 提前50px加载
     });
     
-    images.forEach(img => imageObserver.observe(img));
+    images.forEach(img => {
+        // 确保图片元素存在再观察
+        if (img) {
+            imageObserver.observe(img);
+        }
+    });
 }
 
 // 在图片加载完成后设置懒加载
 document.addEventListener('DOMContentLoaded', () => {
+    // 延迟执行懒加载设置，确保DOM完全加载
     setTimeout(setupLazyLoading, 100);
 }); 
