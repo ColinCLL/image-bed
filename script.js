@@ -91,8 +91,8 @@ function createImageItem(image, index) {
     // 修复缩略图路径
     let thumbnailSrc = image.path; // 默认使用原图
     if (image.thumbnail) {
-        // 简化路径处理
-        thumbnailSrc = image.thumbnail;
+        // 确保缩略图路径正确处理
+        thumbnailSrc = image.thumbnail.startsWith('./') ? image.thumbnail : './' + image.thumbnail;
         
         // 调试信息
         console.log('缩略图路径:', {
