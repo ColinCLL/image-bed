@@ -281,11 +281,15 @@ function updateModalNavigation() {
 function downloadImage(image) {
     if (!image) return;
     
-    // 检测是否为移动设备
+    // 检测设备类型
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const isWeChat = /MicroMessenger/i.test(navigator.userAgent);
     
-    if (isMobile) {
-        // 移动设备：使用特殊方法保存到相册
+    if (isWeChat) {
+        // 微信内置浏览器：使用特殊处理
+        downloadInWeChat(image);
+    } else if (isMobile) {
+        // 其他移动设备：使用移动设备方法
         downloadToMobileGallery(image);
     } else {
         // 桌面设备：使用传统下载方法
@@ -336,43 +340,326 @@ function downloadToMobileGallery(image) {
 
 // 使用Canvas方法下载
 function downloadWithCanvas(image) {
+    // 首先尝试直接下载原图（避免Canvas压缩）
+    try {
+        fetch(image.path)
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('无法获取原图');
+                }
+            })
+            .then(blob => {
+                // 直接使用原图blob，不经过Canvas处理
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = image.name;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+                showDownloadSuccess(image.name);
+            })
+            .catch(error => {
+                console.log('直接下载失败，使用Canvas方法:', error);
+                downloadWithCanvasFallback(image);
+            });
+    } catch (error) {
+        console.log('Fetch方法失败，使用Canvas方法:', error);
+        downloadWithCanvasFallback(image);
+    }
+}
+
+// Canvas方法（兜底方案）
+function downloadWithCanvasFallback(image) {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     const img = new Image();
     
-    img.crossOrigin = 'anonymous'; // 允许跨域
+    img.crossOrigin = 'anonymous';
     img.onload = function() {
         canvas.width = img.width;
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
         
-        // 将canvas转换为blob
+        // 检测原图格式
+        const originalFormat = getImageFormat(image.path);
+        
+        // 根据原图格式选择输出格式和质量
+        let outputFormat = 'image/jpeg';
+        let quality = 0.98; // 进一步提高质量
+        
+        if (originalFormat === 'png') {
+            outputFormat = 'image/png';
+            quality = 1.0; // PNG无损
+        } else if (originalFormat === 'webp') {
+            outputFormat = 'image/webp';
+            quality = 0.98;
+        }
+        
+        // 将canvas转换为blob，保持原图质量
         canvas.toBlob(function(blob) {
-            // 创建下载链接
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.download = image.name;
             
-            // 在移动设备上触发下载
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             
-            // 清理URL对象
             setTimeout(() => URL.revokeObjectURL(url), 1000);
-            
             showDownloadSuccess(image.name);
-        }, 'image/jpeg', 0.9);
+        }, outputFormat, quality);
     };
     
     img.onerror = function() {
-        // 如果canvas方法失败，回退到传统方法
         console.log('Canvas方法失败，使用传统下载方法');
         downloadToDesktop(image);
     };
     
     img.src = image.path;
+}
+
+// 微信内置浏览器下载处理
+function downloadInWeChat(image) {
+    // 微信内置浏览器限制较多，使用引导方式
+    showWeChatDownloadGuide(image);
+}
+
+// 显示微信下载引导
+function showWeChatDownloadGuide(image) {
+    // 创建引导弹窗
+    const guideModal = document.createElement('div');
+    guideModal.className = 'wechat-guide-modal';
+    guideModal.innerHTML = `
+        <div class="wechat-guide-content">
+            <div class="wechat-guide-header">
+                <h3>📱 微信下载引导</h3>
+                <button class="close-guide" onclick="closeWeChatGuide()">×</button>
+            </div>
+            <div class="wechat-guide-body">
+                <p>由于微信内置浏览器限制，无法直接下载图片。</p>
+                <p>可以查看原图，然后长按保存图片。</p>
+                <p>或者请按以下步骤操作：</p>
+                <ol>
+                    <li>点击右上角"..."按钮</li>
+                    <li>选择"在浏览器中打开"</li>
+                    <li>在浏览器中重新访问此页面</li>
+                    <li>然后点击下载按钮</li>
+                </ol>
+                <div class="wechat-guide-tips">
+                    <p><strong>💡 提示：</strong></p>
+                    <p>• 建议使用Safari（iOS）或Chrome（Android）</p>
+                    <p>• 在浏览器中可以正常下载和保存图片</p>
+                </div>
+            </div>
+            <div class="wechat-guide-footer">
+                <button class="copy-link-btn" onclick="copyPageLink()">复制链接</button>
+                <button class="close-guide-btn" onclick="closeWeChatGuide()">知道了</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(guideModal);
+    
+    // 添加样式
+    if (!document.querySelector('#wechat-guide-styles')) {
+        const style = document.createElement('style');
+        style.id = 'wechat-guide-styles';
+        style.textContent = `
+            .wechat-guide-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.8);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .wechat-guide-content {
+                background: white;
+                border-radius: 15px;
+                max-width: 90%;
+                max-height: 80%;
+                overflow-y: auto;
+                padding: 0;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            }
+            .wechat-guide-header {
+                padding: 20px 20px 0;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                border-bottom: 1px solid #eee;
+            }
+            .wechat-guide-header h3 {
+                margin: 0;
+                color: #333;
+            }
+            .close-guide {
+                background: none;
+                border: none;
+                font-size: 24px;
+                cursor: pointer;
+                color: #999;
+            }
+            .wechat-guide-body {
+                padding: 20px;
+            }
+            .wechat-guide-body p {
+                margin: 10px 0;
+                color: #666;
+                line-height: 1.6;
+            }
+            .wechat-guide-body ol {
+                margin: 15px 0;
+                padding-left: 20px;
+            }
+            .wechat-guide-body li {
+                margin: 8px 0;
+                color: #666;
+            }
+            .wechat-guide-tips {
+                background: #f8f9fa;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 15px 0;
+            }
+            .wechat-guide-tips p {
+                margin: 5px 0;
+                font-size: 14px;
+            }
+            .wechat-guide-footer {
+                padding: 20px;
+                display: flex;
+                gap: 10px;
+                border-top: 1px solid #eee;
+            }
+            .copy-link-btn, .close-guide-btn {
+                flex: 1;
+                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 14px;
+                transition: all 0.3s ease;
+            }
+            .copy-link-btn {
+                background: #667eea;
+                color: white;
+            }
+            .copy-link-btn:hover {
+                background: #5a6fd8;
+            }
+            .close-guide-btn {
+                background: #f8f9fa;
+                color: #666;
+            }
+            .close-guide-btn:hover {
+                background: #e9ecef;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+// 关闭微信引导
+function closeWeChatGuide() {
+    const guideModal = document.querySelector('.wechat-guide-modal');
+    if (guideModal) {
+        guideModal.remove();
+    }
+}
+
+// 复制页面链接
+function copyPageLink() {
+    const url = window.location.href;
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(() => {
+            showCopySuccess();
+        });
+    } else {
+        // 兼容旧版本浏览器
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showCopySuccess();
+    }
+}
+
+// 显示复制成功提示
+function showCopySuccess() {
+    const toast = document.createElement('div');
+    toast.className = 'copy-success-toast';
+    toast.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        <span>链接已复制到剪贴板！</span>
+    `;
+    
+    // 添加样式
+    if (!document.querySelector('#copy-toast-styles')) {
+        const style = document.createElement('style');
+        style.id = 'copy-toast-styles';
+        style.textContent = `
+            .copy-success-toast {
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: #28a745;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 25px;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                z-index: 10001;
+                box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+                animation: slideIn 0.3s ease;
+            }
+            @keyframes slideIn {
+                from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+                to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// 检测图片格式
+function getImageFormat(imagePath) {
+    const extension = imagePath.split('.').pop().toLowerCase();
+    switch (extension) {
+        case 'png':
+            return 'png';
+        case 'webp':
+            return 'webp';
+        case 'gif':
+            return 'gif';
+        case 'bmp':
+            return 'bmp';
+        case 'jpg':
+        case 'jpeg':
+        default:
+            return 'jpeg';
+    }
 }
 
 // 下载当前图片
