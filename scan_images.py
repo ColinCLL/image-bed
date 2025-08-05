@@ -145,7 +145,7 @@ class AdvancedImageScanner:
                 print(f"获取图片尺寸时出错 {file_path}: {e}")
                 return {'width': None, 'height': None, 'aspect_ratio': None}
     
-    def generate_thumbnail(self, file_path, max_size=(300, 300)):
+    def generate_thumbnail(self, file_path, max_size=(400, 400)):
         """生成缩略图"""
         if not PILLOW_AVAILABLE:
             print(f"跳过缩略图生成 {file_path.name} (Pillow未安装)")

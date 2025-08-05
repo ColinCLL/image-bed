@@ -281,19 +281,98 @@ function updateModalNavigation() {
 function downloadImage(image) {
     if (!image) return;
     
-    // 创建下载链接
+    // 检测是否为移动设备
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile) {
+        // 移动设备：使用特殊方法保存到相册
+        downloadToMobileGallery(image);
+    } else {
+        // 桌面设备：使用传统下载方法
+        downloadToDesktop(image);
+    }
+}
+
+// 桌面设备下载
+function downloadToDesktop(image) {
     const link = document.createElement('a');
     link.href = image.path;
     link.download = image.name;
     link.target = '_blank';
     
-    // 触发下载
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     
-    // 显示下载成功提示
     showDownloadSuccess(image.name);
+}
+
+// 移动设备保存到相册
+function downloadToMobileGallery(image) {
+    // 首先尝试使用Web Share API（iOS Safari支持）
+    if (navigator.share) {
+        fetch(image.path)
+            .then(response => response.blob())
+            .then(blob => {
+                const file = new File([blob], image.name, { type: blob.type });
+                navigator.share({
+                    title: image.name,
+                    files: [file]
+                }).then(() => {
+                    showDownloadSuccess(image.name);
+                }).catch((error) => {
+                    console.log('Web Share API失败，使用Canvas方法');
+                    downloadWithCanvas(image);
+                });
+            })
+            .catch(() => {
+                downloadWithCanvas(image);
+            });
+    } else {
+        // 如果不支持Web Share API，使用Canvas方法
+        downloadWithCanvas(image);
+    }
+}
+
+// 使用Canvas方法下载
+function downloadWithCanvas(image) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    
+    img.crossOrigin = 'anonymous'; // 允许跨域
+    img.onload = function() {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        
+        // 将canvas转换为blob
+        canvas.toBlob(function(blob) {
+            // 创建下载链接
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = image.name;
+            
+            // 在移动设备上触发下载
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // 清理URL对象
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            
+            showDownloadSuccess(image.name);
+        }, 'image/jpeg', 0.9);
+    };
+    
+    img.onerror = function() {
+        // 如果canvas方法失败，回退到传统方法
+        console.log('Canvas方法失败，使用传统下载方法');
+        downloadToDesktop(image);
+    };
+    
+    img.src = image.path;
 }
 
 // 下载当前图片
@@ -310,12 +389,21 @@ function showDownloadSuccess(filename) {
         existingToast.remove();
     }
     
+    // 检测是否为移动设备
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    // 根据设备类型显示不同的提示
+    let message = `${filename} 下载成功！`;
+    if (isMobile) {
+        message = `${filename} 已保存到相册！`;
+    }
+    
     // 创建新的提示
     const toast = document.createElement('div');
     toast.className = 'download-success';
     toast.innerHTML = `
         <i class="fas fa-check-circle"></i>
-        <span>${filename} 下载成功！</span>
+        <span>${message}</span>
     `;
     
     document.body.appendChild(toast);
